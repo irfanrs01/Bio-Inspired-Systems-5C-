@@ -1,0 +1,123 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- Create Cities ---
+def generate_cities(num_cities, seed=42):
+    np.random.seed(seed)
+    return np.random.rand(num_cities, 2) * 100  # 2D coordinates in 0-100 range
+
+# --- Distance Calculation ---
+def total_distance(route, cities):
+    dist = 0
+    for i in range(len(route)):
+        from_city = cities[route[i]]
+        to_city = cities[route[(i + 1) % len(route)]]
+        dist += np.linalg.norm(from_city - to_city)
+    return dist
+
+# --- Initialize Population ---
+def initialize_population(pop_size, num_cities):
+    return [np.random.permutation(num_cities) for _ in range(pop_size)]
+
+# --- Fitness (Lower distance = higher fitness) ---
+def evaluate_population(population, cities):
+    fitness_scores = []
+    for individual in population:
+        dist = total_distance(individual, cities)
+        fitness_scores.append(1.0 / dist)
+    return np.array(fitness_scores)
+
+# --- Selection (Roulette Wheel) ---
+def select_parents(population, fitness_scores):
+    probabilities = fitness_scores / fitness_scores.sum()
+    indices = np.random.choice(len(population), size=2, p=probabilities)
+    return population[indices[0]], population[indices[1]]
+
+# --- Crossover (Order Crossover - OX) ---
+def crossover(parent1, parent2):
+    size = len(parent1)
+    start, end = sorted(np.random.choice(range(size), 2, replace=False))
+    
+    child = [-1] * size
+    child[start:end] = parent1[start:end]
+    
+    pointer = 0
+    for gene in parent2:
+        if gene not in child:
+            while child[pointer] != -1:
+                pointer += 1
+            child[pointer] = gene
+    return np.array(child)
+
+# --- Mutation (Swap Mutation) ---
+def mutate(individual, mutation_rate=0.1):
+    if np.random.rand() < mutation_rate:
+        i, j = np.random.choice(len(individual), 2, replace=False)
+        individual[i], individual[j] = individual[j], individual[i]
+    return individual
+
+# --- Main GA Function ---
+def genetic_algorithm_tsp(num_cities=20, pop_size=100, generations=500, mutation_rate=0.1):
+    cities = generate_cities(num_cities)
+    population = initialize_population(pop_size, num_cities)
+
+    best_distance = float('inf')
+    best_route = None
+    progress = []
+
+    for gen in range(generations):
+        fitness_scores = evaluate_population(population, cities)
+        new_population = []
+
+        # Elitism: keep best individual
+        best_idx = np.argmax(fitness_scores)
+        best_individual = population[best_idx].copy()
+        best_individual_distance = total_distance(best_individual, cities)
+
+        if best_individual_distance < best_distance:
+            best_distance = best_individual_distance
+            best_route = best_individual.copy()
+
+        new_population.append(best_individual)  # Preserve elite
+
+        while len(new_population) < pop_size:
+            parent1, parent2 = select_parents(population, fitness_scores)
+            child = crossover(parent1, parent2)
+            child = mutate(child, mutation_rate)
+            new_population.append(child)
+
+        population = new_population
+        progress.append(best_distance)
+        if gen % 50 == 0:
+            print(f"Generation {gen}: Best Distance = {best_distance:.2f}")
+
+    return best_route, best_distance, cities, progress
+
+# --- Plotting ---
+def plot_route(route, cities, title="TSP Route"):
+    path = cities[route]
+    path = np.vstack([path, path[0]])  # Return to start
+    plt.figure(figsize=(8, 6))
+    plt.plot(path[:, 0], path[:, 1], 'o-', label="Route")
+    plt.title(title)
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.grid(True)
+    plt.show()
+
+# --- Run the GA TSP Solver ---
+best_route, best_distance, cities, progress = genetic_algorithm_tsp()
+
+print(f"\nBest Route Found: {best_route}")
+print(f"Total Distance: {best_distance:.2f}")
+
+# Plot final route
+plot_route(best_route, cities)
+
+# Plot convergence
+plt.plot(progress)
+plt.title("Convergence Over Generations")
+plt.xlabel("Generation")
+plt.ylabel("Distance")
+plt.grid(True)
+plt.show()

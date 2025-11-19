@@ -1,0 +1,67 @@
+import numpy as np
+
+
+grid_size = (6, 6)
+num_iterations = 50
+mutation_rate = 0.1
+
+# Step 1: Initialize population (each cell = random solution value)
+cells = np.random.rand(*grid_size)  # Each value = potential solution (e.g., routing cost)
+
+# Step 2: Define fitness function (lower cost = higher fitness)
+def fitness(x):
+    return 1 / (1 + x)
+
+# Helper: Get neighbor coordinates (Moore neighborhood)
+def get_neighbors(i, j, grid_shape):
+    neighbors = []
+    for x in [-1, 0, 1]:
+        for y in [-1, 0, 1]:
+            if x == 0 and y == 0:
+                continue
+            ni, nj = i + x, j + y
+            if 0 <= ni < grid_shape[0] and 0 <= nj < grid_shape[1]:
+                neighbors.append((ni, nj))
+    return neighbors
+
+# Step 3: PCA main loop
+best_solution = None
+best_fitness = -np.inf
+
+for iteration in range(num_iterations):
+    new_cells = np.copy(cells)
+    
+    for i in range(grid_size[0]):
+        for j in range(grid_size[1]):
+            # Get neighbors and evaluate fitness
+            neighbors = get_neighbors(i, j, grid_size)
+            neighbor_values = [cells[n_i, n_j] for n_i, n_j in neighbors]
+            neighbor_fitness = [fitness(val) for val in neighbor_values]
+            
+            # Find best neighbor
+            best_idx = np.argmax(neighbor_fitness)
+            best_neighbor_value = neighbor_values[best_idx]
+            
+            # Update rule: move toward best neighbor with small mutation
+            mutation = np.random.uniform(-0.05, 0.05)
+            new_value = best_neighbor_value + mutation * mutation_rate
+            new_cells[i, j] = np.clip(new_value, 0, 1)
+    
+    cells = new_cells
+    
+    # Track best global solution
+    flat_fitness = [fitness(v) for v in cells.flatten()]
+    iteration_best = np.max(flat_fitness)
+    if iteration_best > best_fitness:
+        best_fitness = iteration_best
+        best_solution = np.min(cells)
+    
+    # Print iteration progress
+    print(f"Iteration {iteration + 1}: Best Fitness = {best_fitness:.4f}")
+
+# Step 4: Output final results
+print("\nFinal optimized grid of network costs:")
+print(np.round(cells, 3))
+
+print("\nBest network cost found:", round(best_solution, 4))
+print("Corresponding fitness:", round(best_fitness, 4))

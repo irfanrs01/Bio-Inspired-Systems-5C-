@@ -1,0 +1,87 @@
+import numpy as np
+from sklearn import datasets
+from sklearn.svm import SVC
+from sklearn.model_selection import cross_val_score
+
+# Objective Function (Fitness Function)
+def objective_function(params):
+    C, gamma = params[0], params[1]
+    # Load dataset (e.g., Iris dataset)
+    iris = datasets.load_iris()
+    X, y = iris.data, iris.target
+    # Train SVM with cross-validation and return negative accuracy (for minimization)
+    clf = SVC(C=C, gamma=gamma)
+    accuracy = cross_val_score(clf, X, y, cv=5).mean()
+    return -accuracy  # We minimize, so return negative accuracy
+
+# Initialize parameters for GEA
+population_size = 10
+num_generations = 50
+mutation_rate = 0.1
+crossover_rate = 0.7
+gene_range = [(0.1, 10), (0.001, 1)]  # C range (0.1 to 10), gamma range (0.001 to 1)
+
+# Initialize population (random gene sequences for C and gamma)
+def initialize_population(population_size, gene_range):
+    population = []
+    for _ in range(population_size):
+        individual = np.array([np.random.uniform(*gene_range[0]), np.random.uniform(*gene_range[1])])
+        population.append(individual)
+    return np.array(population)
+
+# Mutation function (random mutation within range)
+def mutate(individual, gene_range):
+    gene_idx = np.random.randint(0, len(individual))
+    mutation_value = np.random.uniform(*gene_range[gene_idx])
+    individual[gene_idx] = mutation_value
+    return individual
+
+# Crossover function (single-point crossover)
+def crossover(parent1, parent2):
+    if np.random.rand() < crossover_rate:
+        crossover_point = np.random.randint(1, len(parent1))
+        child1 = np.concatenate([parent1[:crossover_point], parent2[crossover_point:]])
+        child2 = np.concatenate([parent2[:crossover_point], parent1[crossover_point:]])
+        return child1, child2
+    else:
+        return parent1, parent2
+
+# Selection function (roulette wheel selection)
+def select_parents(population, fitness_values):
+    total_fitness = np.sum(fitness_values)
+    selection_probs = fitness_values / total_fitness
+    selected_indices = np.random.choice(np.arange(len(population)), size=2, p=selection_probs)
+    return population[selected_indices[0]], population[selected_indices[1]]
+
+# Main GEA loop
+def run_gea():
+    population = initialize_population(population_size, gene_range)
+    for generation in range(num_generations):
+        fitness_values = np.array([objective_function(individual) for individual in population])
+        print(f"Generation {generation}: Best Fitness = {-np.min(fitness_values)}")
+
+        # New population for next generation
+        new_population = []
+        for _ in range(population_size // 2):
+            # Select parents
+            parent1, parent2 = select_parents(population, fitness_values)
+            # Crossover
+            child1, child2 = crossover(parent1, parent2)
+            # Mutation
+            if np.random.rand() < mutation_rate:
+                child1 = mutate(child1, gene_range)
+            if np.random.rand() < mutation_rate:
+                child2 = mutate(child2, gene_range)
+            new_population.extend([child1, child2])
+        
+        population = np.array(new_population)
+    
+    # Final fitness evaluation
+    fitness_values = np.array([objective_function(individual) for individual in population])
+    best_solution = population[np.argmin(fitness_values)]
+    return best_solution, -np.min(fitness_values)
+
+# Run the GEA optimization
+best_solution, best_fitness = run_gea()
+print("\nBest Solution (C, gamma):", best_solution)
+print("Best Fitness (accuracy):", best_fitness)

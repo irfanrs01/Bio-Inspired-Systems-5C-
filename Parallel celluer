@@ -5,10 +5,10 @@ grid_size = (6, 6)
 num_iterations = 50
 mutation_rate = 0.1
 
-# Step 1: Initialize population (each cell = random solution value)
+
 cells = np.random.rand(*grid_size)  # Each value = potential solution (e.g., routing cost)
 
-# Step 2: Define fitness function (lower cost = higher fitness)
+
 def fitness(x):
     return 1 / (1 + x)
 

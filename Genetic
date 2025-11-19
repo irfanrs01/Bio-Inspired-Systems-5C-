@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# --- Create Cities ---
+
 def generate_cities(num_cities, seed=42):
     np.random.seed(seed)
     return np.random.rand(num_cities, 2) * 100  # 2D coordinates in 0-100 range
 
-# --- Distance Calculation ---
+
 def total_distance(route, cities):
     dist = 0
     for i in range(len(route)):
@@ -15,11 +15,10 @@ def total_distance(route, cities):
         dist += np.linalg.norm(from_city - to_city)
     return dist
 
-# --- Initialize Population ---
+
 def initialize_population(pop_size, num_cities):
     return [np.random.permutation(num_cities) for _ in range(pop_size)]
 
-# --- Fitness (Lower distance = higher fitness) ---
 def evaluate_population(population, cities):
     fitness_scores = []
     for individual in population:

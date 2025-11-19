@@ -81,6 +81,8 @@ def run_gea():
     best_solution = population[np.argmin(fitness_values)]
     return best_solution, -np.min(fitness_values)
 
+
+
 # Run the GEA optimization
 best_solution, best_fitness = run_gea()
 print("\nBest Solution (C, gamma):", best_solution)
